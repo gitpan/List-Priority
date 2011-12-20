@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 
-$VERSION = '0.02';
+$VERSION = '0.03rc1';
 
 
 # Constructor. Enables Inheritance
@@ -27,7 +27,7 @@ sub new {
 # Duplicates are not allowed - might be optional if needed in the future
 sub insert {
 	# Arguments check
-	return 'List::Priority - Expected 3 arguements!' if (scalar(@_) != 3);
+	return 'List::Priority - Expected 3 arguments!' if (scalar(@_) != 3);
 	
 	# Argument assignment
 	my $self = shift;
@@ -51,7 +51,7 @@ sub insert {
 		$self->{options}{SIZE} <= $self->{size}) 
 	{
 		my ($bottom_priority) = (sort {$a <=> $b} keys %{$self->{queues}});
-		# And the object's priority is higher then the lowest on on the list 
+		# And the object's priority is higher than the lowest on on the list 
 		# - remove the lowest one to insert it
 		if ($priority > $bottom_priority) {
 			$self->shift($bottom_priority);
@@ -71,7 +71,7 @@ sub insert {
 
 sub pop {
 	# Arguments check
-	return 'List::Priority - Pop expected 1 or 2 arguements!' 
+	return 'List::Priority - Pop expected 1 or 2 arguments!' 
 		if (scalar(@_) != 1 and scalar(@_) != 2);
 
 	my ($self, $top_priority) = @_;
@@ -100,7 +100,7 @@ sub pop {
 
 sub shift {
 	# Arguments check
-	return 'List::Priority - Unshift expected 1 or 2 arguements!' 
+	return 'List::Priority - Unshift expected 1 or 2 arguments!' 
 		if (scalar(@_) != 1 and scalar(@_) != 2);
 
 	my ($self, $bottom_priority) = @_;
@@ -111,7 +111,7 @@ sub shift {
 	}
 	else {
 		# Find out the bottom priority
-		($bottom_priority) = (sort {$b <=> $a} keys %{$self->{queues}});
+		($bottom_priority) = (sort {$a <=> $b} keys %{$self->{queues}});
 		return undef unless (defined ($bottom_priority));
 	}
 
@@ -125,6 +125,11 @@ sub shift {
 	# Return the object I just shifted out of the queue
 	--$self->{size};
 	return $object;
+}
+
+sub size {
+	my ($self) = @_;
+	return $self->{size};
 }
 
 1;
@@ -143,12 +148,13 @@ List::Priority - Perl extension for a list that manipulates objects by their pri
   # Create an instance
   my $list = List::Priority->new();
   
-  # Insert some elements, each woth a unique priority
+  # Insert some elements, each with a unique priority
   $list->insert(2,'World!');
   $list->insert(5,'Hello');
   $list->insert(3,' ');
   
   # Print
+  print $list->size()			# prints 3
   while (my $element = $list->pop()) {
   	  print $element;
   }
@@ -156,12 +162,12 @@ List::Priority - Perl extension for a list that manipulates objects by their pri
 
 =head1 DESCRIPTION
 
-If you want to handle multiple data bits by their order of importance -
-This one's for you.
+If you want to handle multiple data bits by their order of importance,
+this one's for you.
 
 Logic:
 Precedence to highest priority object.
-If more than one object hold the highest priority - FIFO is king.
+If more than one object holds the highest priority, FIFO is king.
 
 Duplicate objects are currently not allowed.
 
@@ -242,6 +248,19 @@ Return value:
 
 The object on success, undef upon failure
 
+=item B<size> - The number of elements in the list
+
+  $num_elts = $p_list->size();
+
+Arguments:
+
+None.
+
+Return value:
+
+The number of elements in the priority queue.
+
+=back
 
 =head1 EXPORT
 
@@ -250,16 +269,24 @@ None. All interfaces are OO.
 
 =head1 TODO
 
-Well, I'm dangerously neglecting the testing bit...
+More tests.
 
 
 =head1 AUTHOR
 
 Eyal Udassin, <eyaludassin@hotmail.com>
 
+Currently maintained by Miles Gould, <miles@assyrian.org.uk>
+
+Thanks to Maik Hentsche for bugfixes.
+
+=head1 CONTRIBUTING
+
+You can find the Git repository at L<http://github.com/pozorvlak/List-Priority>.
 
 =head1 SEE ALSO
 
-L<Set::Scalar>.
+L<Set::Scalar>, L<List::PriorityQueue>, L<Hash::PriorityQueue>, L<POE::Queue>,
+L<Timeout::Queue>, L<Data::PrioQ::SkewBinomial>.
 
 =cut

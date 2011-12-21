@@ -1,21 +1,22 @@
 --- #YAML:1.0
 name:               List-Priority
-version:            0.03rc1
+version:            0.03
 abstract:           Perl extension for a list that manipulates objects by their priority
 author:
-    - A. U. Thor <a.u.thor@a.galaxy.far.far.away>
+    - Miles Gould <miles@assyrian.org.uk>
 license:            unknown
 distribution_type:  module
 configure_requires:
     ExtUtils::MakeMaker:  0
 build_requires:
     ExtUtils::MakeMaker:  0
-requires:  {}
+requires:
+    Test::More:  0.88
 no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.55_02
+generated_by:       ExtUtils::MakeMaker version 6.56
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4

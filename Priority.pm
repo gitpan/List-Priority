@@ -7,7 +7,7 @@ use vars qw($VERSION);
 use Carp;
 use List::Util qw/min max/;
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 
 # Constructor. Enables Inheritance
@@ -18,10 +18,6 @@ sub new {
 	bless $self, $class;
 	if (@_) {
 		my %options = @_;
-		if (!exists $options{capacity} && exists $options{SIZE}) {
-			$options{capacity} = $options{SIZE};
-		}
-		delete $options{SIZE};
 		$self->{options} = \%options;
 	}
 	$self->{size} = 0;
@@ -33,9 +29,7 @@ sub insert {
 	# Arguments check
 	croak 'List::Priority - Expected 3 arguments!' if (scalar(@_) != 3);
 	# Argument assignment
-	my $self = shift;
-	my $priority = shift;
-	my $object = shift;
+	(my $self, my $priority, my $object) = @_;
 	# Check that priority is numeric - Thanks Randel/Joseph!
 	croak 'List::Priority - Priority must be numeric!'
 		if ((~$priority & $priority) ne '0');
@@ -46,7 +40,7 @@ sub insert {
 		# And the object's priority is higher than the lowest on the list
 		# - remove the lowest one to insert it
 		if ($priority > $bottom_priority) {
-			$self->shift($bottom_priority);
+			$self->_extract($bottom_priority);
 		}
 		# Else, just return - the list is full.
 		else {
@@ -64,44 +58,47 @@ sub insert {
 # Otherwise, use $minmax() to find the best priority in the set, and
 # extract the first element with that priority.
 sub _extract {
-	my ($self, $priority, $minmax) = @_;
+	my ($self, $priority) = @_;
 	return undef if ($self->{size} == 0);
-	if (defined($priority)) {
-		return undef unless (defined($self->{queues}{$priority}));
-	} else {
-		# Find out the extreme (top or bottom) priority
-		($priority) = $minmax->(keys %{$self->{queues}});
-		return undef unless (defined ($priority));
-	}
+	return undef unless (defined ($priority));
 	# Remove the queue's first element
-	my $object = shift (@{$self->{queues}{$priority}});
+	my $object = CORE::shift (@{$self->{queues}{$priority}});
 	# If the queue is now empty - delete it
 	delete $self->{queues}{$priority}
 		if (scalar(@{$self->{queues}{$priority}}) == 0);
 	# Return the object I just shifted out of the queue
 	--$self->{size};
-	if (wantarray) {
-		return ($priority, $object);
-	} else {
-		return $object;
-	}
+	return $object;
 }
-	
+
+# Find out the extreme (top or bottom) priority
+sub _extreme_priority {
+	my ($self, $minmax) = @_;
+	return $minmax->(keys %{$self->{queues}});
+}
+
+sub highest_priority {
+	my $self = shift;
+	return $self->_extreme_priority(\&max);
+}
+
+sub lowest_priority {
+	my $self = shift;
+	return $self->_extreme_priority(\&min);
+}
 
 sub pop {
 	# Arguments check
-	croak 'List::Priority - pop expected 1 or 2 arguments!'
-		if (scalar(@_) != 1 and scalar(@_) != 2);
-	my ($self, $top_priority) = @_;
-	return $self->_extract($top_priority, \&max);
+	croak 'List::Priority - pop expected 1 argument' if (scalar(@_) != 1);
+	my ($self) = @_;
+	return $self->_extract($self->highest_priority);
 }
 
 sub shift {
 	# Arguments check
-	croak 'List::Priority - shift expected 1 or 2 arguments!'
-		if (scalar(@_) != 1 and scalar(@_) != 2);
-	my ($self, $bottom_priority) = @_;
-	return $self->_extract($bottom_priority, \&min);
+	croak 'List::Priority - shift expected 1 argument' if (scalar(@_) != 1);
+	my ($self) = @_;
+	return $self->_extract($self->lowest_priority);
 }
 
 sub size {
@@ -203,18 +200,11 @@ list with the list attributes.
 
 The maximum size of the list.
 
-Inserting after the size is reached will result either in a no-op, or the
+Inserting after the capacity is reached will result either in a no-op, or the
 removal of the most recent lowest priority objects, according to the
 C<insert()>'s priority.
 
   $list = List::Priority->new(capacity => 10);
-
-=item * B<SIZE>
-
-A synonym for C<capacity>, retained for backwards compatibility. If you specify
-both a C<SIZE> and a C<capacity> parameter, C<SIZE> will be ignored.
-
-This option is deprecated, and may disappear in a future release.
 
 =back
 
@@ -237,16 +227,7 @@ Extracts the highest-priority scalar from the list.
 Time taken is approximately linear in the number of I<priorities> already in
 the list.
 
-As an optional argument, takes the specific priority value to pop from, instead
-of the most important one.
-
-  # first-added object whose priority is 3
-  # NB: _not_ the first-added object whose priority is >= 3
-  $best_object_p3 = $list->pop(3);
-
-In list context, returns the (priority, object) pair on sucesss, and C<undef>
-on failure. In scalar context, returns the object on success, and C<undef> on
-failure.
+Returns the highest-priority object on success, and C<undef> on failure.
 
 =item B<shift>
 
@@ -256,16 +237,21 @@ Extracts the B<lowest>-priority scalar from the list.
 Time taken is approximately linear in the number of I<priorities> already in
 the list.
 
-As an optional argument, takes the specific priority value to shift from,
-instead of the least important one.
+Returns the lowest-priority object on success, C<undef> on failure.
 
-  # first-added object whose priority is 3
-  # NB: _not_ the first-added object whose priority is <= 3
-  $worst_object_p3 = $list->shift(3);
+=item B<highest_priority>
 
-In list context, returns the (priority, object) pair on sucesss, C<undef> on
-failure. In scalar context, returns the object on success, C<undef> on
-failure.
+  $priority = $p_list->highest_priority();
+
+Returns the priority of the highest-priority item. Time taken is linear in the
+number of priorities in the list.
+
+=item B<lowest_priority>
+
+  $priority = $p_list->lowest_priority();
+
+Returns the priority of the lowest-priority item. Time taken is linear in the
+number of priorities in the list.
 
 =item B<size>
 
